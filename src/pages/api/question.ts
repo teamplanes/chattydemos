@@ -186,7 +186,9 @@ export default async function handler(req: Request): Promise<Response> {
   };
 
   const stream = await OpenAIStream(payload);
-  return new Response(stream);
+  return new Response(stream, {
+    headers: {'Content-Type': 'text/html; charset=utf-8'},
+  });
 }
 
 export const config = {
