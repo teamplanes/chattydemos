@@ -1,6 +1,13 @@
 /* eslint-disable consistent-return */
 import {useEffect, useRef, useState} from 'react';
-import {Button, Container, Heading, Input, Stack} from '@chakra-ui/react';
+import {
+  Button,
+  Container,
+  Heading,
+  Input,
+  Stack,
+  useToast,
+} from '@chakra-ui/react';
 import {ChatGPTMessage} from './api/question';
 
 const fields = [
@@ -53,84 +60,98 @@ function Page() {
   const [formState, setFormState] = useState({} as Record<string, string>);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasBegun, setHasBegun] = useState(false);
   const [fieldIndex, setFieldIndex] = useState(0);
   const [response, setResponse] = useState('');
   const [answer, setAnswer] = useState('');
   const [history, setHistory] = useState<ChatGPTMessage[]>([]);
+  const toast = useToast();
 
   const generateResponse = async (
     e?: React.SyntheticEvent<HTMLElement>,
   ): Promise<void | any> => {
     e?.preventDefault();
 
-    setHasBegun(true);
-    const newHistory = [...history];
+    try {
+      setIsLoading(true);
+      setHasBegun(true);
+      const newHistory = [...history];
 
-    if (answer) {
-      newHistory.push({
-        content: answer,
-        role: 'user',
-      });
+      if (answer) {
+        newHistory.push({
+          content: answer,
+          role: 'user',
+        });
 
-      setHistory(newHistory);
-      setAnswer('');
-    }
-
-    if (!fields[fieldIndex]) {
-      setIsComplete(true);
-      return;
-    }
-
-    const data = await fetchQuestionStream({
-      history: newHistory,
-      formStepIndex: fieldIndex,
-      fieldLabel: fields[fieldIndex].label,
-      fieldContext: fields[fieldIndex].context,
-      formState,
-    });
-
-    if (!data) {
-      throw new Error('No data');
-    }
-
-    const reader = data.getReader();
-    const decoder = new TextDecoder();
-    let done = false;
-    let question = '';
-
-    while (!done) {
-      const {value, done: doneReading} = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-
-      if (chunkValue.startsWith('[COMPLETE]')) {
-        const responseValue = chunkValue.replace('[COMPLETE]', '').trim();
-        setFieldIndex((prev) => prev + 1);
-        setResponse('');
+        setHistory(newHistory);
         setAnswer('');
-        setHistory([]);
+      }
 
-        // There is a side-effect triggered by this state update
-        setFormState((cur) => ({
-          ...cur,
-          [fields[fieldIndex].key]: responseValue,
-        }));
+      if (!fields[fieldIndex]) {
+        setIsComplete(true);
         return;
       }
-      question += chunkValue;
-      setResponse(question);
+
+      const data = await fetchQuestionStream({
+        history: newHistory,
+        formStepIndex: fieldIndex,
+        fieldLabel: fields[fieldIndex].label,
+        fieldContext: fields[fieldIndex].context,
+        formState,
+      });
+
+      if (!data) {
+        throw new Error('No data');
+      }
+
+      const reader = data.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let question = '';
+
+      while (!done) {
+        const {value, done: doneReading} = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value);
+
+        if (chunkValue.startsWith('[COMPLETE]')) {
+          const responseValue = chunkValue.replace('[COMPLETE]', '').trim();
+          setFieldIndex((prev) => prev + 1);
+          setResponse('');
+          setAnswer('');
+          setHistory([]);
+
+          // There is a side-effect triggered by this state update
+          setFormState((cur) => ({
+            ...cur,
+            [fields[fieldIndex].key]: responseValue,
+          }));
+          return;
+        }
+        question += chunkValue;
+        setResponse(question);
+      }
+
+      setHistory((prev) => [
+        ...prev,
+        {
+          content: question,
+          role: 'assistant',
+        },
+      ]);
+
+      inputRef.current?.focus();
+      setIsLoading(false);
+    } catch {
+      toast({
+        title: 'An error occurred.',
+        description: 'Unable to generate response.',
+        status: 'error',
+        duration: 9000,
+        isClosable: true,
+      });
     }
-
-    setHistory((prev) => [
-      ...prev,
-      {
-        content: question,
-        role: 'assistant',
-      },
-    ]);
-
-    inputRef.current?.focus();
   };
 
   useEffect(() => {
@@ -171,7 +192,12 @@ function Page() {
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
           />
-          <Button isDisabled={!answer} size="lg" type="submit">
+          <Button
+            isLoading={isLoading}
+            isDisabled={!answer}
+            size="lg"
+            type="submit"
+          >
             Submit
           </Button>
         </Stack>
