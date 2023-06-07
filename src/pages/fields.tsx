@@ -26,6 +26,7 @@ const fetchQuestionStream = async (options: {
   formState: Record<string, string>;
 }) => {
   const result = await fetch('/api/question', {
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
