@@ -1,6 +1,7 @@
 {
   "name": "chattyfields",
   "version": "0.1.0",
+  "prettier": "prettier-config-planes",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,14 +10,26 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@chakra-ui/react": "^2.6.1",
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
     "@types/node": "20.2.3",
     "@types/react": "18.2.6",
     "@types/react-dom": "18.2.4",
-    "eslint": "8.41.0",
+    "dedent": "^0.7.0",
+    "eslint": "^8.2.0",
     "eslint-config-next": "13.4.3",
+    "eventsource-parser": "^1.0.0",
+    "framer-motion": "^10.12.16",
     "next": "13.4.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-icons": "^4.9.0",
     "typescript": "5.0.4"
+  },
+  "devDependencies": {
+    "@types/dedent": "^0.7.0",
+    "eslint-config-planes": "3.1.1",
+    "prettier-config-planes": "^1.0.1"
   }
 }
