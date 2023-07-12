@@ -250,6 +250,7 @@ function ExpenseSplitterPage() {
         </Panel>
         <PanelResizeHandle style={{width: '10px', background: 'grey'}} />
         <Panel minSize={30}>
+          <Text>{JSON.stringify(callLog, null, 2)}</Text>
           <CallLog callLog={callLog} />
         </Panel>
       </PanelGroup>
