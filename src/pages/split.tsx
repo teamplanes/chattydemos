@@ -17,7 +17,7 @@ import {
 import {useRef, useState} from 'react';
 import {CreateChatCompletionRequest} from 'openai';
 import {Output} from '@/lib/models/expense-splitter/types';
-import { completionPayload } from '@/lib/models/expense-splitter/completion-payload';
+import {completionPayload} from '@/lib/models/expense-splitter/completion-payload';
 
 function Split() {
   const {current: debtGraph} = useRef(new DebtGraph(listOfFriends));
@@ -36,7 +36,10 @@ function Split() {
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
-      setCallLog(cur => [...cur, completionPayload({expenseAsNaturalLanguage: cost})]]);
+      setCallLog((cur) => [
+        ...cur,
+        completionPayload({expenseAsNaturalLanguage: cost}),
+      ]);
       const response = await fetch(`/api/split?cost=${cost}`);
       if (!response.ok) {
         throw new Error('Something went wrong');
@@ -60,7 +63,6 @@ function Split() {
       } else {
         throw new Error('Something went wrong');
       }
-
 
       setCost('');
       setDebts(debtGraph.getSimplifiedDebts());
