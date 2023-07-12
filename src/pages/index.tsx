@@ -38,7 +38,7 @@ function Chatty() {
             example of how you can effectively use GPT for purely reasoning and
             then to do the maths yourself.
           </Text>
-          <Link href="/split">
+          <Link href="/expense-splitter">
             <Button>Try it out</Button>
           </Link>
         </Stack>
