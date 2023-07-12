@@ -26,80 +26,132 @@ const handler: NextApiHandler = async (req, res) => {
     return;
   }
   const payload: OpenAIStreamPayload = {
-    model: 'gpt-3.5-turbo',
+    model: 'gpt-3.5-turbo-0613',
+    function_call: {
+      name: 'add_cost',
+    },
+    functions: [
+      {
+        name: 'add_cost',
+        description: 'Add a new cost',
+        parameters: {
+          type: 'object',
+          properties: {
+            cost: {
+              oneOf: [
+                {
+                  type: 'object',
+                  description: 'Split the bill equally between all friends.',
+                  properties: {
+                    costType: {
+                      type: 'string',
+                      enum: ['equal_split'],
+                    },
+                    totalBill: {
+                      type: 'number',
+                      minimum: 0,
+                      description: 'The total amount of the bill.',
+                    },
+                    paidBy: {
+                      type: 'string',
+                      description: 'The name of the friend who paid the bill.',
+                      enum: listOfFriends,
+                    },
+                  },
+                  required: ['costType', 'totalBill', 'paidBy'],
+                },
+                {
+                  type: 'object',
+                  description:
+                    'Split the bill equally between a subset of friends.',
+                  properties: {
+                    costType: {
+                      type: 'string',
+                      enum: ['subgroup_split'],
+                    },
+                    totalBill: {
+                      type: 'number',
+                      minimum: 0,
+                      description: 'The total amount of the bill.',
+                    },
+                    paidBy: {
+                      type: 'string',
+                      description: 'The name of the friend who paid the bill.',
+                      enum: listOfFriends,
+                    },
+                    peers: {
+                      type: 'array',
+                      description:
+                        'The names of the friends who are splitting the bill.',
+                      items: {
+                        type: 'string',
+                        enum: listOfFriends,
+                      },
+                    },
+                  },
+                  required: ['costType', 'totalBill', 'paidBy', 'peers'],
+                },
+                {
+                  type: 'object',
+                  description:
+                    'Split the bill between the user and one other friend.',
+                  properties: {
+                    costType: {
+                      type: 'string',
+                      enum: ['peer_split'],
+                    },
+                    totalBill: {
+                      type: 'number',
+                      minimum: 0,
+                      description: 'The total amount of the bill.',
+                    },
+                    paidBy: {
+                      type: 'string',
+                      description: 'The name of the friend who paid the bill.',
+                      enum: listOfFriends,
+                    },
+                    peer: {
+                      type: 'string',
+                      enum: listOfFriends,
+                      description:
+                        'The name of the friend who is splitting the bill.',
+                    },
+                  },
+                  required: ['costType', 'totalBill', 'paidBy', 'peer'],
+                },
+              ],
+            },
+          },
+        },
+      },
+    ],
     messages: [
       {
-        role: 'user',
+        role: 'system',
         content: dedent`
           You are ChattySplitGPT, an AI bot that decides which debt command to run based on the user's input.
 
           The user is a human who is trying to split a bill with their friends.
 
-          You have the following three possible commands:
-          - "equalSplit": Split the bill equally between all friends. Inputs: "totalBill", "paidBy"
-          - "subgroupSplit": Split the bill equally between a subset of friends. Inputs: "totalBill", "paidBy", "peers"
-          - "peerSplit": Split the bill between the user and one other friend. Inputs: "totalBill", "paidBy", "peer"
+          The list of friends is: ${listOfFriends.join(', ')}.
 
-          Please return the name of the command you would like to run along with it's payload in the following format:
-          \`\`\`json
-          {
-            "command": "equalSplit",
-            "payload": {
-              "totalBill": Number,
-              "paidBy": String
-            }
-          }
-          \`\`\`
-
-          OR
-
-          \`\`\`json
-          {
-            "command": "subgroupSplit",
-            "payload": {
-              "totalBill": Number,
-              "paidBy": String,
-              "peers": [String]
-            }
-          }
-          \`\`\`
-
-          OR
-
-          \`\`\`json
-          {
-            "command": "peerSplit",
-            "payload": {
-              "totalBill": Number,
-              "paidBy": String,
-              "peer": String
-            }
-          }
-          \`\`\`
-
-          The list of possible friends is ${listOfFriends}.
-
-          If the user's input references a friend that is not in the list, please return the following JSON:
-          \`\`\`json
-          {
-            "command": "error",
-            "payload": "Invalid friend name"
-          }
-          \`\`\`
-
+          `,
+      },
+      {
+        role: 'user',
+        content: dedent`
+          For any ambiguous costs from user input, please assume the cost is split equally between all friends.
           ${me}'s input is: "${cost}"
-          ${me} may have provided a name in lowercase, so please sanitize the input.
-          Please only return your JSON response, no other text.
         `,
       },
     ],
     temperature: 0,
-    top_p: 1,
-    frequency_penalty: 0,
-    presence_penalty: 0,
-    max_tokens: 1000,
+    // top_p: 1,
+    // frequency_penalty: 0,
+    // presence_penalty: 0,
+    // max_tokens: 1000,
     stream: false,
-    n: 1,
+    // n: 1,
   };
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -111,27 +163,41 @@ const handler: NextApiHandler = async (req, res) => {
     body: JSON.stringify(payload),
   });
 
+  if (!response.ok) {
+    const text = await response.text();
+    console.log(
+      '🚀 ~ file: split.ts:155 ~ consthandler:NextApiHandler= ~ text:',
+      text,
+    );
+    res.status(400).json({error: 'An error occurred'});
+    return;
+  }
+
   const {choices} = (await response.json()) as {
     choices: {message: {content: string}}[];
   };
 
-  const parsed = parseOutput(choices[0].message.content);
+  // const parsed = parseOutput(choices[0].message.content);
 
-  if (parsed.command === 'error') {
-    res.status(400).json({error: parsed.payload || 'An error occured'});
-    return;
-  }
+  // if (parsed.command === 'error') {
+  //   res.status(400).json({error: parsed.payload || 'An error occured'});
+  //   return;
+  // }
 
-  if (
-    parsed.command !== 'equalSplit' &&
-    parsed.command !== 'peerSplit' &&
-    parsed.command !== 'subgroupSplit'
-  ) {
-    res.status(400).json({error: `Invalid command ${parsed.command}`});
-    return;
-  }
+  // if (
+  //   parsed.command !== 'equalSplit' &&
+  //   parsed.command !== 'peerSplit' &&
+  //   parsed.command !== 'subgroupSplit'
+  // ) {
+  //   res.status(400).json({error: `Invalid command ${parsed.command}`});
+  //   return;
+  // }
 
-  res.status(200).json(parsed);
+  console.log(
+    '🚀 ~ file: split.ts:174 ~ consthandler:NextApiHandler= ~ choices:',
+    choices,
+  );
+  res.status(200).json(choices);
 };
 
 export default handler;

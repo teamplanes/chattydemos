@@ -15,6 +15,8 @@ export interface OpenAIStreamPayload {
   messages: ChatGPTMessage[];
   temperature: number;
   top_p: number;
+  function_call?: string | {name: string};
+  functions?: any[];
   frequency_penalty: number;
   presence_penalty: number;
   max_tokens: number;
