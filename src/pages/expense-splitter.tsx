@@ -239,8 +239,13 @@ function ExpenseSplitterPage() {
   };
 
   return (
-    <Container maxW="container.xl">
-      <PanelGroup direction="horizontal">
+    <Container maxW="container.sm">
+      <ExpenseSplitter
+        onAddNewExpense={handleAddNewExpense}
+        debts={debts}
+        isAddingNewExpense={isLoading}
+      />
+      {/* <PanelGroup direction="horizontal">
         <Panel defaultSize={40} minSize={30}>
           <ExpenseSplitter
             onAddNewExpense={handleAddNewExpense}
@@ -248,14 +253,14 @@ function ExpenseSplitterPage() {
             isAddingNewExpense={isLoading}
           />
         </Panel>
-        <PanelResizeHandle style={{width: '10px', background: 'grey'}} />
+        {/* <PanelResizeHandle style={{width: '10px', background: 'grey'}} />
         <Panel minSize={30}>
-          <Text whiteSpace="pre" fontSize={12}>
+          {/* <Text whiteSpace="pre" fontSize={12}>
             {JSON.stringify(callLog, null, 2)}
           </Text>
-          {/* <CallLog callLog={callLog} /> */}
+          {/* <CallLog callLog={callLog} />
         </Panel>
-      </PanelGroup>
+      </PanelGroup> */}
     </Container>
   );
 }
