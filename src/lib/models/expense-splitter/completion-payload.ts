@@ -7,7 +7,7 @@ import {listOfFriends, me} from './config';
 export const completionPayload = (
   input: Input,
 ): CreateChatCompletionRequest => ({
-  model: 'gpt-3.5-turbo',
+  model: 'gpt-4-0613',
   function_call: {
     name: 'add_cost',
   },
