@@ -31,6 +31,8 @@ export const completionPayload = (
 
         Select the appropriate cost type based on the user's expense.
 
+        The user entering the expense is: ${me}, please include them in the cost.
+
         For any ambiguous costs from user input, please assume the cost is split equally between all friends.
         `,
     },
